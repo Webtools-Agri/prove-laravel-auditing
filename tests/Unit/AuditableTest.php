@@ -1013,7 +1013,7 @@ class AuditableTest extends AuditingTestCase
         $this->expectExceptionMessage('Expected Auditable id (integer)2, got (integer)1 instead');
 
         $firstModel = factory(Article::class)->create();
-        $firstAudit = $firstModel->audits()->first();
+        $firstAudit = $firstModel->histories()->first();
         $firstAudit->auditable_id = $firstModel->id;
 
         $secondModel = factory(Article::class)->create();

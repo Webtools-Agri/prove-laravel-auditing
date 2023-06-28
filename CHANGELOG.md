@@ -186,7 +186,7 @@
 
 ## v4.0.5 (2017-05-03)
 ### Fixed
-- Removed problematic ORDER BY from the audits() relation method in the Auditable trait
+- Removed problematic ORDER BY from the histories() relation method in the Auditable trait
 
 ## v4.0.4 (2017-05-01)
 ### Added

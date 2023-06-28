@@ -28,7 +28,7 @@ class AuditTest extends AuditingTestCase
         ]);
 
         /** @var Audit $audit */
-        $audit = $article->audits()->first();
+        $audit = $article->histories()->first();
         $resolvedData = $audit->resolveData();
         $this->assertCount(15, $resolvedData);
 
@@ -75,7 +75,7 @@ class AuditTest extends AuditingTestCase
             'published_at' => $now,
         ]);
 
-        $audit = $article->audits()->first();
+        $audit = $article->histories()->first();
 
         $this->assertCount(21, $resolvedData = $audit->resolveData());
 
@@ -123,7 +123,7 @@ class AuditTest extends AuditingTestCase
             'content'      => 'First step: install the laravel-auditing package.',
             'reviewed'     => 1,
             'published_at' => Carbon::now(),
-        ])->audits()->first();
+        ])->histories()->first();
 
         // Resolve data, making it available to the getDataValue() method
         $this->assertCount(21, $audit->resolveData());
@@ -154,7 +154,7 @@ class AuditTest extends AuditingTestCase
      */
     public function itReturnsAuditMetadataAsArray()
     {
-        $audit = factory(Article::class)->create()->audits()->first();
+        $audit = factory(Article::class)->create()->histories()->first();
 
         $this->assertCount(10, $metadata = $audit->getMetadata());
 
@@ -188,7 +188,7 @@ class AuditTest extends AuditingTestCase
         $this->actingAs($user);
 
         /** @var Audit $audit */
-        $audit = factory(Article::class)->create()->audits()->first();
+        $audit = factory(Article::class)->create()->histories()->first();
 
         $this->assertCount(16, $metadata = $audit->getMetadata());
 
@@ -218,7 +218,7 @@ class AuditTest extends AuditingTestCase
      */
     public function itReturnsAuditMetadataAsJsonString()
     {
-        $audit = factory(Article::class)->create()->audits()->first();
+        $audit = factory(Article::class)->create()->histories()->first();
 
         $metadata = $audit->getMetadata(true, JSON_PRETTY_PRINT);
 
@@ -255,7 +255,7 @@ class AuditTest extends AuditingTestCase
 
         $this->actingAs($user);
 
-        $audit = factory(Article::class)->create()->audits()->first();
+        $audit = factory(Article::class)->create()->histories()->first();
 
         $metadata = $audit->getMetadata(true, JSON_PRETTY_PRINT);
 
@@ -298,7 +298,7 @@ class AuditTest extends AuditingTestCase
             'content'      => 'First step: install the laravel-auditing package.',
             'reviewed'     => 1,
             'published_at' => $now,
-        ])->audits()->first();
+        ])->histories()->first();
 
         $this->assertCount(5, $modified = $audit->getModified());
 
@@ -335,7 +335,7 @@ class AuditTest extends AuditingTestCase
             'content'      => 'First step: install the laravel-auditing package.',
             'reviewed'     => 1,
             'published_at' => $now,
-        ])->audits()->first();
+        ])->histories()->first();
 
         $modified = $audit->getModified(true, JSON_PRETTY_PRINT);
 

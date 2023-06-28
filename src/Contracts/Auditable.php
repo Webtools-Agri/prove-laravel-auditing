@@ -11,7 +11,7 @@ interface Auditable
      *
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany<OwenIt\Auditing\Contracts\Audit>
      */
-    public function audits(): MorphMany;
+    public function histories(): MorphMany;
 
     /**
      * Set the Audit event.

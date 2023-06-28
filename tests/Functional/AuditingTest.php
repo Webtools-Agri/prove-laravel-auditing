@@ -281,7 +281,7 @@ class AuditingTest extends AuditingTestCase
             ]);
         }
 
-        $this->assertSame(100, $article->audits()->count());
+        $this->assertSame(100, $article->histories()->count());
     }
 
     /**
@@ -304,7 +304,7 @@ class AuditingTest extends AuditingTestCase
             ]);
         }
 
-        $this->assertSame(10, $article->audits()->count());
+        $this->assertSame(10, $article->histories()->count());
     }
 
     /**
@@ -445,7 +445,7 @@ class AuditingTest extends AuditingTestCase
         $article->save();
 
         /** @var Audit $audit */
-        $audit = $article->audits()->skip(1)->first();
+        $audit = $article->histories()->skip(1)->first();
         $this->assertSame(false, $audit->getModified()['config']['new']['articleIsGood']);
         $this->assertSame(true, $audit->getModified()['config']['old']['articleIsGood']);
     }
@@ -462,7 +462,7 @@ class AuditingTest extends AuditingTestCase
         $article = factory(Article::class)->create();
 
         $this->assertTrue(true);
-        $audit = $article->audits()->first();
+        $audit = $article->histories()->first();
         $this->assertSame(1, (int)$audit->tenant_id);
     }
 
@@ -477,7 +477,7 @@ class AuditingTest extends AuditingTestCase
 
         $article = factory(Article::class)->create();
 
-        $audit = $article->audits()->first();
+        $audit = $article->histories()->first();
         $this->assertEmpty($audit->ip_address);
     }
 
@@ -495,7 +495,7 @@ class AuditingTest extends AuditingTestCase
         $article->published_at = null;
         $article->reviewed = 0;
         $article->save();
-        $this->assertArrayNotHasKey('content', $article->audits()->first()->getModified());
+        $this->assertArrayNotHasKey('content', $article->histories()->first()->getModified());
     }
 
     /**
@@ -512,8 +512,8 @@ class AuditingTest extends AuditingTestCase
         $article->published_at = null;
         $article->reviewed = 0;
         $article->save();
-        $this->assertArrayHasKey('content', $article->audits()->first()->getModified());
-        $this->assertArrayNotHasKey('title', $article->audits()->first()->getModified());
+        $this->assertArrayHasKey('content', $article->histories()->first()->getModified());
+        $this->assertArrayNotHasKey('title', $article->histories()->first()->getModified());
     }
 
     /**
