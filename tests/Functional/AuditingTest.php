@@ -9,12 +9,14 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Event;
 use InvalidArgumentException;
 use OwenIt\Auditing\Events\AuditCustom;
+use OwenIt\Auditing\Events\Audited;
 use OwenIt\Auditing\Events\Auditing;
 use OwenIt\Auditing\Exceptions\AuditingException;
 use OwenIt\Auditing\Models\Audit;
 use OwenIt\Auditing\Tests\AuditingTestCase;
 use OwenIt\Auditing\Tests\fixtures\TenantResolver;
 use OwenIt\Auditing\Tests\Models\Article;
+use OwenIt\Auditing\Tests\Models\ArticleCustomAuditMorph;
 use OwenIt\Auditing\Tests\Models\ArticleExcludes;
 use OwenIt\Auditing\Tests\Models\Category;
 use OwenIt\Auditing\Tests\Models\User;
@@ -22,7 +24,6 @@ use OwenIt\Auditing\Tests\Models\User;
 class AuditingTest extends AuditingTestCase
 {
     use WithFaker;
-
 
     /**
      * @test
@@ -192,7 +193,7 @@ class AuditingTest extends AuditingTestCase
         ], $audit->old_values, true);
 
         self::Assert()::assertArraySubset([
-            'content'      => 'First step: install the laravel-auditing package.',
+            'content'      => Article::contentMutate('First step: install the laravel-auditing package.'),
             'published_at' => $now->toDateTimeString(),
             'reviewed'     => 1,
         ], $audit->new_values, true);
@@ -326,7 +327,7 @@ class AuditingTest extends AuditingTestCase
     public function itWillNotAuditDueToClassWithoutDriverInterface()
     {
         // We just pass a FQCN that does not implement the AuditDriver interface
-        $this->app['config']->set('audit.driver', self::class);
+        $this->app['config']->set('audit.driver', Article::class);
 
         $this->expectException(AuditingException::class);
         $this->expectExceptionMessage('The driver must implement the AuditDriver contract');
@@ -586,7 +587,7 @@ class AuditingTest extends AuditingTestCase
      * @test
      * @return void
      */
-    public function itWillAuditCustomEventData()
+    public function itWillAuditAttach()
     {
         $firstCategory = factory(Category::class)->create();
         $secondCategory = factory(Category::class)->create();
@@ -594,11 +595,12 @@ class AuditingTest extends AuditingTestCase
 
         $article->auditAttach('categories', $firstCategory);
         $article->auditAttach('categories', $secondCategory);
+        $lastArticleAudit = $article->audits->last()->getModified()['categories'];
+
         $this->assertSame($firstCategory->name, $article->categories->first()->name);
-        $this->assertSame(
-            $secondCategory->name,
-            $article->audits->last()->getModified()['categories']['new'][1]['name']
-        );
+        $this->assertSame(0, count($lastArticleAudit['old']));
+        $this->assertSame(1, count($lastArticleAudit['new']));
+        $this->assertSame($secondCategory->name, $lastArticleAudit['new'][0]['name']);
     }
 
     /**
@@ -617,6 +619,33 @@ class AuditingTest extends AuditingTestCase
         $categoryBefore = $article->categories()->first()->getKey();
 
         $article->auditSync('categories', [$secondCategory->getKey()]);
+
+        $no_of_audits_after = Audit::where('auditable_type', Article::class)->count();
+        $categoryAfter = $article->categories()->first()->getKey();
+
+        $this->assertSame($firstCategory->getKey(), $categoryBefore);
+        $this->assertSame($secondCategory->getKey(), $categoryAfter);
+        $this->assertNotSame($categoryBefore, $categoryAfter);
+        $this->assertGreaterThan($no_of_audits_before, $no_of_audits_after);
+    }
+
+    /**
+     * @test
+     * @return void
+     */
+    public function itWillAuditDetach()
+    {
+        $firstCategory = factory(Category::class)->create();
+        $secondCategory = factory(Category::class)->create();
+        $article = factory(Article::class)->create();
+
+        $article->categories()->attach($firstCategory);
+        $article->categories()->attach($secondCategory);
+
+        $no_of_audits_before = Audit::where('auditable_type', Article::class)->count();
+        $categoryBefore = $article->categories()->first()->getKey();
+
+        $article->auditDetach('categories', [$firstCategory->getKey()]);
 
         $no_of_audits_after = Audit::where('auditable_type', Article::class)->count();
         $categoryAfter = $article->categories()->first()->getKey();
@@ -711,6 +740,61 @@ class AuditingTest extends AuditingTestCase
      * @test
      * @return void
      */
+    public function itWillNotAuditAttachWhenSkippingEmptyValuesAndNoChangesMade()
+    {
+        $this->app['config']->set('audit.empty_values', false);
+
+        $firstCategory = factory(Category::class)->create();
+        $article = factory(Article::class)->create();
+
+        $article->categories()->attach($firstCategory);
+
+        $no_of_audits_before = Audit::where('auditable_type', Article::class)->count();
+        $categoryBefore = $article->categories()->first()->getKey();
+
+        $article->auditAttach('categories', [$firstCategory->getKey()]);
+
+        $no_of_audits_after = Audit::where('auditable_type', Article::class)->count();
+        $categoryAfter = $article->categories()->first()->getKey();
+
+        $this->assertSame($firstCategory->getKey(), $categoryBefore);
+        $this->assertSame($firstCategory->getKey(), $categoryAfter);
+        $this->assertSame($categoryBefore, $categoryAfter);
+        $this->assertSame($no_of_audits_before, $no_of_audits_after);
+    }
+
+    /**
+     * @test
+     * @return void
+     */
+    public function itWillNotAuditDetachWhenSkippingEmptyValuesAndNoChangesMade()
+    {
+        $this->app['config']->set('audit.empty_values', false);
+
+        $firstCategory = factory(Category::class)->create();
+        $secondCategory = factory(Category::class)->create();
+        $article = factory(Article::class)->create();
+
+        $article->categories()->attach($firstCategory);
+
+        $no_of_audits_before = Audit::where('auditable_type', Article::class)->count();
+        $categoryBefore = $article->categories()->first()->getKey();
+
+        $article->auditDetach('categories', [$secondCategory->getKey()]);
+
+        $no_of_audits_after = Audit::where('auditable_type', Article::class)->count();
+        $categoryAfter = $article->categories()->first()->getKey();
+
+        $this->assertSame($firstCategory->getKey(), $categoryBefore);
+        $this->assertSame($firstCategory->getKey(), $categoryAfter);
+        $this->assertSame($categoryBefore, $categoryAfter);
+        $this->assertSame($no_of_audits_before, $no_of_audits_after);
+    }
+
+    /**
+     * @test
+     * @return void
+     */
     public function canAuditAnyCustomEvent()
     {
         $article = factory(Article::class)->create();
@@ -731,5 +815,26 @@ class AuditingTest extends AuditingTestCase
             'new_values'     => '{"customExample":"Darth Vader"}',
             'old_values'     => '{"customExample":"Anakin Skywalker"}'
         ]);
+    }
+
+    /**
+     * @test
+     * @return void
+     */
+    public function canAuditCustomAuditModelImplementation()
+    {   
+        $audit = null;
+        Event::listen(Audited::class, function ($event) use (&$audit) {
+            $audit = $event->audit;
+        });
+        
+        $article = new ArticleCustomAuditMorph();
+        $article->title = $this->faker->unique()->sentence;
+        $article->content = $this->faker->unique()->paragraph(6);
+        $article->reviewed = 0;
+        $article->save();
+
+        $this->assertNotEmpty($audit);
+        $this->assertSame(get_class($audit), \OwenIt\Auditing\Tests\Models\CustomAudit::class);
     }
 }

@@ -4,19 +4,19 @@ namespace OwenIt\Auditing\Events;
 
 use OwenIt\Auditing\Contracts\Auditable;
 
-class AuditCustom
+class DispatchingAudit
 {
     /**
      * The Auditable model.
      *
-     * @var \OwenIt\Auditing\Contracts\Auditable
+     * @var Auditable
      */
     public $model;
 
     /**
-     * Create a new Auditing event instance.
+     * Create a new DispatchingAudit event instance.
      *
-     * @param \OwenIt\Auditing\Contracts\Auditable $model
+     * @param Auditable $model
      */
     public function __construct(Auditable $model)
     {

@@ -15,6 +15,7 @@ use OwenIt\Auditing\Exceptions\AuditingException;
 use OwenIt\Auditing\Models\Audit;
 use OwenIt\Auditing\Redactors\LeftRedactor;
 use OwenIt\Auditing\Redactors\RightRedactor;
+use OwenIt\Auditing\Resolvers\UrlResolver;
 use OwenIt\Auditing\Tests\Models\ApiModel;
 use OwenIt\Auditing\Tests\Models\Article;
 use OwenIt\Auditing\Tests\Models\ArticleExcludes;
@@ -274,7 +275,7 @@ class AuditableTest extends AuditingTestCase
     /**
      * @return array
      */
-    public function auditCustomAttributeGetterFailTestProvider(): array
+    public static function auditCustomAttributeGetterFailTestProvider(): array
     {
         return [
             [
@@ -409,7 +410,7 @@ class AuditableTest extends AuditingTestCase
             'old_values'     => [],
             'new_values'     => [
                 'title'        => 'How To Audit Eloquent Models',
-                'content'      => 'First step: install the laravel-auditing package.',
+                'content'      => Article::contentMutate('First step: install the laravel-auditing package.'),
                 'reviewed'     => 1,
                 'published_at' => $now->toDateTimeString(),
             ],
@@ -418,7 +419,7 @@ class AuditableTest extends AuditingTestCase
             'auditable_type'        => Article::class,
             $morphPrefix . '_id'    => null,
             $morphPrefix . '_type'  => null,
-            'url'                   => 'console',
+            'url'                   => UrlResolver::resolveCommandLine(),
             'ip_address'            => '127.0.0.1',
             'user_agent'            => 'Symfony',
             'tags'                  => null,
@@ -469,7 +470,7 @@ class AuditableTest extends AuditingTestCase
             'old_values'     => [],
             'new_values'     => [
                 'title'        => 'How To Audit Eloquent Models',
-                'content'      => 'First step: install the laravel-auditing package.',
+                'content'      => Article::contentMutate('First step: install the laravel-auditing package.'),
                 'reviewed'     => 1,
                 'published_at' => $now->toDateTimeString(),
             ],
@@ -478,7 +479,7 @@ class AuditableTest extends AuditingTestCase
             'auditable_type'        => Article::class,
             $morphPrefix . '_id'    => $id,
             $morphPrefix . '_type'  => $type,
-            'url'                   => 'console',
+            'url'                   => UrlResolver::resolveCommandLine(),
             'ip_address'            => '127.0.0.1',
             'user_agent'            => 'Symfony',
             'tags'                  => null,
@@ -488,7 +489,7 @@ class AuditableTest extends AuditingTestCase
     /**
      * @return array
      */
-    public function userResolverProvider(): array
+    public static function userResolverProvider(): array
     {
         return [
             [
@@ -552,14 +553,14 @@ class AuditableTest extends AuditingTestCase
             'old_values'     => [],
             'new_values'     => [
                 'title'   => 'How To Audit Eloquent Models',
-                'content' => 'First step: install the laravel-auditing package.',
+                'content' => Article::contentMutate('First step: install the laravel-auditing package.'),
             ],
             'event'                 => 'created',
             'auditable_id'          => null,
             'auditable_type'        => Article::class,
             $morphPrefix . '_id'    => null,
             $morphPrefix . '_type'  => null,
-            'url'                   => 'console',
+            'url'                   => UrlResolver::resolveCommandLine(),
             'ip_address'            => '127.0.0.1',
             'user_agent'            => 'Symfony',
             'tags'                  => null,
@@ -967,12 +968,11 @@ class AuditableTest extends AuditingTestCase
         ]);
 
         $model = Article::first();
-        
+
         $this->assertEquals($model->published_at, $originalStart);
 
         $model->published_at = new Carbon('2022-01-01 12:30:00');
         $model->save();
-        
         $audit = $model->audits->last();
         $audit->auditable_id = $model->id;
 
@@ -1201,7 +1201,7 @@ class AuditableTest extends AuditingTestCase
     /**
      * @return array
      */
-    public function auditableTransitionTestProvider(): array
+    public static function auditableTransitionTestProvider(): array
     {
         return [
             //
@@ -1246,7 +1246,7 @@ class AuditableTest extends AuditingTestCase
                 // Expectation when transitioning with new values
                 [
                     'title'   => 'NULLAM EGESTAS INTERDUM ELEIFEND.',
-                    'content' => 'Morbi consectetur laoreet sem, eu tempus odio tempor id.',
+                    'content' => Article::contentMutate('Morbi consectetur laoreet sem, eu tempus odio tempor id.'),
                 ],
             ],
 
@@ -1272,13 +1272,13 @@ class AuditableTest extends AuditingTestCase
                 // Expectation when transitioning with old values
                 [
                     'title'   => 'VIVAMUS A URNA ET LOREM FAUCIBUS MALESUADA NEC NEC MAGNA.',
-                    'content' => 'Mauris ipsum erat, semper non quam vel, sodales tincidunt ligula.',
+                    'content' => Article::contentMutate('Mauris ipsum erat, semper non quam vel, sodales tincidunt ligula.'),
                 ],
 
                 // Expectation when transitioning with new values
                 [
                     'title'   => 'NULLAM EGESTAS INTERDUM ELEIFEND.',
-                    'content' => 'Morbi consectetur laoreet sem, eu tempus odio tempor id.',
+                    'content' => Article::contentMutate('Morbi consectetur laoreet sem, eu tempus odio tempor id.'),
                 ],
             ],
 
@@ -1301,12 +1301,98 @@ class AuditableTest extends AuditingTestCase
                 // Expectation when transitioning with old values
                 [
                     'title'   => 'VIVAMUS A URNA ET LOREM FAUCIBUS MALESUADA NEC NEC MAGNA.',
-                    'content' => 'Mauris ipsum erat, semper non quam vel, sodales tincidunt ligula.',
+                    'content' => Article::contentMutate('Mauris ipsum erat, semper non quam vel, sodales tincidunt ligula.'),
                 ],
 
                 // Expectation when transitioning with new values
                 [],
             ],
         ];
+    }
+
+    /**
+     * @test
+     */
+    public function itWorksWhenConfigAllowedArrayValueIsTrue()
+    {
+        $this->app['config']->set('audit.allowed_array_values', true);
+
+        $model = factory(Article::class)->make([
+            'title'        => 'How To Audit Eloquent Models',
+            'content'      => 'First step: install the laravel-auditing package.',
+            'reviewed'     => 1,
+            'images' => [
+                'https://example.com/image1.jpg',
+                'https://example.com/image2.jpg',
+            ]
+        ]);
+
+        $model->setAuditEvent('created');
+
+        $auditData = $model->toAudit();
+
+        $morphPrefix = config('audit.user.morph_prefix', 'user');
+        self::Assert()::assertArraySubset([
+            'old_values'     => [],
+            'new_values'     => [
+                'title'        => 'How To Audit Eloquent Models',
+                'content'      => Article::contentMutate('First step: install the laravel-auditing package.'),
+                'reviewed'     => 1,
+                'images'       => [
+                    'https://example.com/image1.jpg',
+                    'https://example.com/image2.jpg',
+                ],
+            ],
+            'event'                 => 'created',
+            'auditable_id'          => null,
+            'auditable_type'        => Article::class,
+            $morphPrefix . '_id'    => null,
+            $morphPrefix . '_type'  => null,
+            'url'                   => UrlResolver::resolveCommandLine(),
+            'ip_address'            => '127.0.0.1',
+            'user_agent'            => 'Symfony',
+            'tags'                  => null,
+        ], $auditData, true);
+    }
+
+    /**
+     * @test
+     */
+    public function itWorksWhenConfigAllowedArrayValueIsFalse()
+    {
+        $this->app['config']->set('audit.allowed_array_values', false);
+
+        $model = factory(Article::class)->make([
+            'title'        => 'How To Audit Eloquent Models',
+            'content'      => 'First step: install the laravel-auditing package.',
+            'reviewed'     => 1,
+            'images' => [
+                'https://example.com/image1.jpg',
+                'https://example.com/image2.jpg',
+            ]
+        ]);
+
+        $model->setAuditEvent('created');
+
+        $auditData = $model->toAudit();
+
+        $morphPrefix = config('audit.user.morph_prefix', 'user');
+        self::Assert()::assertArraySubset([
+            'old_values'     => [],
+            'new_values'     => [
+                'title'        => 'How To Audit Eloquent Models',
+                'content'      => Article::contentMutate('First step: install the laravel-auditing package.'),
+                'reviewed'     => 1,
+            ],
+            'event'                 => 'created',
+            'auditable_id'          => null,
+            'auditable_type'        => Article::class,
+            $morphPrefix . '_id'    => null,
+            $morphPrefix . '_type'  => null,
+            'url'                   => UrlResolver::resolveCommandLine(),
+            'ip_address'            => '127.0.0.1',
+            'user_agent'            => 'Symfony',
+            'tags'                  => null,
+        ], $auditData, true);
     }
 }

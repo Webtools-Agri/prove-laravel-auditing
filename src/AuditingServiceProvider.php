@@ -2,14 +2,18 @@
 
 namespace OwenIt\Auditing;
 
-use Illuminate\Contracts\Support\DeferrableProvider;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use OwenIt\Auditing\Console\AuditDriverCommand;
 use OwenIt\Auditing\Console\AuditResolverCommand;
 use OwenIt\Auditing\Console\InstallCommand;
 use OwenIt\Auditing\Contracts\Auditor;
+use OwenIt\Auditing\Events\AuditCustom;
+use OwenIt\Auditing\Events\DispatchAudit;
+use OwenIt\Auditing\Listeners\ProcessDispatchAudit;
+use OwenIt\Auditing\Listeners\RecordCustomAudit;
 
-class AuditingServiceProvider extends ServiceProvider implements DeferrableProvider
+class AuditingServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap the service provider.
@@ -20,6 +24,9 @@ class AuditingServiceProvider extends ServiceProvider implements DeferrableProvi
     {
         $this->registerPublishing();
         $this->mergeConfigFrom(__DIR__ . '/../config/audit.php', 'audit');
+
+        Event::listen(AuditCustom::class, RecordCustomAudit::class);
+        Event::listen(DispatchAudit::class, ProcessDispatchAudit::class);
     }
 
     /**
@@ -38,8 +45,6 @@ class AuditingServiceProvider extends ServiceProvider implements DeferrableProvi
         $this->app->singleton(Auditor::class, function ($app) {
             return new \OwenIt\Auditing\Auditor($app);
         });
-
-        $this->app->register(AuditingEventServiceProvider::class);
     }
 
     /**
@@ -63,15 +68,5 @@ class AuditingServiceProvider extends ServiceProvider implements DeferrableProvi
                 ], 'migrations');
             }
         }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function provides()
-    {
-        return [
-            Auditor::class,
-        ];
     }
 }
