@@ -874,7 +874,7 @@ class AuditableTest extends AuditingTestCase
 
         $model->published_at = new Carbon('2022-01-01 12:30:00');
         $model->save();
-        $audit = $model->audits->last();
+        $audit = $model->histories->last();
         $audit->auditable_id = $model->id;
 
         $model->transitionTo($audit, true);
@@ -1071,13 +1071,13 @@ class AuditableTest extends AuditingTestCase
         $model->save();
         $model->refresh();
 
-        $this->assertCount(1, $model->audits);
+        $this->assertCount(1, $model->histories);
 
         $model->content = 'Something else';
         $model->save();
         $model->refresh();
 
-        $this->assertCount(2, $model->audits);
+        $this->assertCount(2, $model->histories);
     }
 
     public static function auditableTransitionTestProvider(): array
