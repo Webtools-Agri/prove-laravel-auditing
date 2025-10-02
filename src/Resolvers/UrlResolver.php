@@ -5,16 +5,14 @@ namespace OwenIt\Auditing\Resolvers;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Request;
 use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Contracts\Resolver;
 
-class UrlResolver implements \OwenIt\Auditing\Contracts\Resolver
+class UrlResolver implements Resolver
 {
-    /**
-     * @return string
-     */
     public static function resolve(Auditable $auditable): string
     {
         if (! empty($auditable->preloadedResolverData['url'] ?? null)) {
-            return $auditable->preloadedResolverData['url'];
+            return $auditable->preloadedResolverData['url'] ?? '';
         }
 
         if (App::runningInConsole()) {
@@ -27,7 +25,7 @@ class UrlResolver implements \OwenIt\Auditing\Contracts\Resolver
     public static function resolveCommandLine(): string
     {
         $command = Request::server('argv', null);
-        if (is_array($command)) {
+        if (is_array($command)) { // @phpstan-ignore function.impossibleType
             return implode(' ', $command);
         }
 

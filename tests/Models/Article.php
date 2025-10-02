@@ -3,15 +3,20 @@
 namespace OwenIt\Auditing\Tests\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 use OwenIt\Auditing\Tests\Casts\Money;
+use OwenIt\Auditing\Tests\database\factories\ArticleFactory;
 
 class Article extends Model implements Auditable
 {
+    use HasFactory;
     use \OwenIt\Auditing\Auditable;
     use SoftDeletes;
+
+    protected static string $factory = ArticleFactory::class;
 
     protected $laravel_version;
 
@@ -20,7 +25,7 @@ class Article extends Model implements Auditable
      */
     protected $casts = [
         'reviewed' => 'bool',
-        'config'   => 'json',
+        'config' => 'json',
         'published_at' => 'datetime',
         'price' => Money::class,
     ];
@@ -42,13 +47,22 @@ class Article extends Model implements Auditable
         'reviewed',
     ];
 
+    public $customClosure;
+
     public function __construct(array $attributes = [])
     {
         if (class_exists(\Illuminate\Database\Eloquent\Casts\AsArrayObject::class)) {
             $this->casts['config'] = \Illuminate\Database\Eloquent\Casts\AsArrayObject::class;
         }
 
+        $this->customClosure = function () {};
+
         parent::__construct($attributes);
+    }
+
+    public function users()
+    {
+        return $this->morphToMany(User::class, 'model', 'model_has_users');
     }
 
     public function categories()
@@ -58,10 +72,6 @@ class Article extends Model implements Auditable
 
     /**
      * Uppercase Title accessor.
-     *
-     * @param string $value
-     *
-     * @return string
      */
     public function getTitleAttribute(string $value): string
     {
@@ -70,14 +80,16 @@ class Article extends Model implements Auditable
 
     /**
      * Uppercase Content accessor.
-     *
-     * @return Attribute
      */
     public function content(): Attribute
     {
         return new Attribute(
-            function ($value) { return $value; },
-            function ($value) { return ucwords($value); }
+            function ($value) {
+                return $value;
+            },
+            function ($value) {
+                return ucwords($value);
+            }
         );
     }
 

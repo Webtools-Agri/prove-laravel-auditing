@@ -3,11 +3,11 @@
 namespace OwenIt\Auditing\Tests\database\factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use OwenIt\Auditing\Tests\Models\Category;
+use OwenIt\Auditing\Tests\Models\Group;
 
-class CategoryFactory extends Factory
+class GroupFactory extends Factory
 {
-    protected $model = Category::class;
+    protected $model = Group::class;
 
     public function definition()
     {
