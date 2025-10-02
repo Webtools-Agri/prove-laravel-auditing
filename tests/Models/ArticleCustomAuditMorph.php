@@ -11,7 +11,7 @@ class ArticleCustomAuditMorph extends Article
     /**
      * @return MorphMany<CustomAudit>
      */
-    public function audits(): MorphMany
+    public function histories(): MorphMany
     {
         return $this->morphMany(CustomAudit::class, 'auditable');
     }
