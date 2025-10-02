@@ -552,7 +552,7 @@ class AuditingTest extends AuditingTestCase
 
         $article->auditAttach('categories', $firstCategory);
         $article->auditAttach('categories', $secondCategory);
-        $lastArticleAudit = $article->audits->last()->getModified()['categories'];
+        $lastArticleAudit = $article->histories->last()->getModified()['categories'];
 
         $this->assertSame($firstCategory->name, $article->categories->first()->name);
         $this->assertSame(0, count($lastArticleAudit['old']));
